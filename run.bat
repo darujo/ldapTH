@@ -1,0 +1,4 @@
+C:\dlc1172\jre\bin\java.exe -jar C:\java\authTh\target\AuthTH-1.0-SNAPSHOT-jar-with-dependencies.jar help
+C:\dlc1172\jre\bin\java.exe -jar C:\java\authTh\target\AuthTH-1.0-SNAPSHOT-jar-with-dependencies.jar {\"method\":\"getUsers\",\"user\":\"daru\",\"password\":\"123\"}
+C:\dlc1172\jre\bin\java.exe -jar C:\java\authTh\target\AuthTH-1.0-SNAPSHOT-jar-with-dependencies.jar {\"method\":\"isUser\",\"user\":\"daru\",\"password\":\"123\"}
+C:\dlc1172\jre\bin\java.exe -jar C:\java\authTh\target\AuthTH-1.0-SNAPSHOT-jar-with-dependencies.jar {\"method\":\"isUserInGroup\",\"user\":\"daru\",\"password\":\"123\"}
