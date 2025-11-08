@@ -1,19 +1,23 @@
 //https://www.javaxt.com/wiki/Tutorials/Windows/How_to_Authenticate_Users_with_Active_Directory
 package ru.daru_jo;
 
+import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
+
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.rmi.RemoteException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
+import javax.naming.directory.*;
 
 import static javax.naming.directory.SearchControls.SUBTREE_SCOPE;
 
@@ -21,8 +25,6 @@ import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.InitialLdapContext;
 
 //Imports for changing password
-import javax.naming.directory.ModificationItem;
-import javax.naming.directory.BasicAttribute;
 import javax.naming.ldap.StartTlsResponse;
 import javax.naming.ldap.StartTlsRequest;
 import javax.net.ssl.*;
@@ -35,6 +37,7 @@ import javax.net.ssl.*;
  * Provides static methods to authenticate users, change passwords, etc.
  ******************************************************************************/
 
+@Log4j2
 public class ActiveDirectory {
 
     private static final String[] userAttributes = {
@@ -72,6 +75,9 @@ public class ActiveDirectory {
         if (domainName == null) {
             domainName = getDomain();
         }
+        if (serverName == null) {
+            serverName = getDefaultLdapHost();
+        }
         if (domainName == null && serverName == null) {
             serverName = "localhost";
         }
@@ -93,7 +99,7 @@ public class ActiveDirectory {
         if (password != null) props.put(Context.SECURITY_CREDENTIALS, password);
 
 
-        String ldapURL = "ldap://" + ((serverName == null) ? domainName : (domainName == null ? serverName : serverName + "." + domainName)) + '/';
+        String ldapURL = "ldap://" + ((serverName == null) ? domainName :  serverName ) + '/';
 //        System.out.println(ldapURL);
 
         props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
@@ -375,7 +381,7 @@ public class ActiveDirectory {
                 exist = true;
             }
         } catch (Exception e) {
-            System.out.println("Fail to search in active directory groups");
+            log.error("Fail to search in active directory groups");
             e.printStackTrace();
             return false;
         }
@@ -411,7 +417,7 @@ public class ActiveDirectory {
                 attributes.add(attrs);
             }
         } catch (Exception e) {
-            System.out.println("Fail to search in active directory groups");
+            log.error("Fail to search in active directory groups");
             e.printStackTrace();
         }
         return attributes;
@@ -465,6 +471,127 @@ public class ActiveDirectory {
             throw new RuntimeException(e);
         }
     }
+    /**
+     * Detect the default LDAP server
+     * @return server:port or null
+     */
+    public static String getDefaultLdapHost() {
+        try {
+            Hashtable<String, String> env = new Hashtable();
+            env.put( "java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory" );
+            DirContext dns = new InitialDirContext( env );
 
+            InetAddress address = InetAddress.getLocalHost();
+            log.info(address.toString());
+
+            String domain = address.getCanonicalHostName();
+            log.info(domain);
+            log.info(address.getHostAddress());
+            if( domain.equals( address.getHostAddress() ) ) {
+                //domain is a ip address
+                domain = getDnsPtr( dns );
+                log.info(domain);
+
+            }
+
+            int idx = domain.indexOf( '.' );
+            log.info(Integer.toString(idx));
+
+            if( idx < 0 ) {
+                //computer is not in a domain? We will look in the DNS self.
+                domain = getDnsPtr( dns );
+                log.info(domain);
+
+                idx = domain.indexOf( '.' );
+                if( idx < 0 ) {
+                    //computer is not in a domain
+                    return null;
+                }
+            }
+            log.info(domain);
+
+            domain = domain.substring( idx + 1 );
+            log.info(domain);
+
+            Attributes attrs = dns.getAttributes( "_ldap._tcp." + domain, new String[] { "SRV" } );
+            log.info(attrs.toString());
+
+            Attribute attr = attrs.getAll().nextElement();
+            String srv = attr.get().toString();
+            log.info(srv);
+
+            String[] parts = srv.split( " " );
+            log.info(parts[3]);
+            log.info(parts[2]);
+            log.info(parts[3].indexOf("."));
+            log.info("result:");
+            log.info(parts[3].substring(0, parts[3].length() - 1  ));
+            return parts[3].substring(0, parts[3].length() - 1  );
+        } catch( Exception ex ) {
+            ex.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Look for a reverse PTR record on any available ip address
+     * @param dns DNS context
+     * @return the PTR value
+     * @throws Exception if the PTR entry was not found
+     */
+    private static String getDnsPtr( DirContext dns ) throws Exception {
+        Exception exception = null;
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while(interfaces.hasMoreElements()) {
+            NetworkInterface nif = interfaces.nextElement();
+            log.info(nif.toString());
+            log.info(Boolean.toString(nif.isLoopback()));
+            if( nif.isLoopback() ) {
+                continue;
+            }
+            log.info("adresses");
+
+            Enumeration<InetAddress> adresses = nif.getInetAddresses();
+            while(adresses.hasMoreElements()) {
+                InetAddress address = adresses.nextElement();
+                log.info(address.toString());
+                log.info(Boolean.toString(address.isLoopbackAddress()));
+                log.info(Boolean.toString(address instanceof Inet6Address));
+
+                if( address.isLoopbackAddress() || address instanceof Inet6Address) {
+                    continue;
+                }
+                String domain = address.getCanonicalHostName();
+                log.info(domain);
+
+                if( !domain.equals( address.getHostAddress() ) && (domain.indexOf( '.' ) > 0) ) {
+                    return domain;
+                }
+
+                String ip = address.getHostAddress();
+                log.info(ip);
+
+                String[] digits = ip.split( "\\." );
+                StringBuilder builder = new StringBuilder();
+                builder.append( digits[3] ).append( '.' );
+                builder.append( digits[2] ).append( '.' );
+                builder.append( digits[1] ).append( '.' );
+                builder.append( digits[0] ).append( ".in-addr.arpa." );
+                log.info(builder.toString());
+
+                try {
+                    Attributes attrs = dns.getAttributes( builder.toString(), new String[] { "PTR" } );
+                    log.info(attrs.toString());
+                    return attrs.get( "PTR" ).get().toString();
+                } catch( Exception ex ) {
+                    exception = ex;
+                }
+            }
+        }
+        if( exception != null ) {
+            throw exception;
+        }
+        throw new IllegalStateException("No network");
+    }
 
 }

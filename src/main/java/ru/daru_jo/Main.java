@@ -3,6 +3,7 @@ package ru.daru_jo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.log4j.Log4j2;
 
 import javax.naming.NamingException;
 import javax.naming.ldap.LdapContext;
@@ -10,10 +11,10 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Objects;
-
+@Log4j2
 public class Main {
+//    private static final Logger log = LogManager.getLogManager().getLogger("global");
     private static ObjectMapper objectMapper;
-
     public static void main(String[] args) {
         objectMapper = new ObjectMapper();
         if (args.length == 0) {
@@ -33,6 +34,9 @@ public class Main {
     }
 
     public static void run(String arg) {
+        log.info("Привет вот бка");
+
+
         ParamObj paramObj;
         if (arg == null || arg.replace(" ", "").equalsIgnoreCase("help")) {
             putHelp();
@@ -97,7 +101,7 @@ public class Main {
                 boolean flag = ActiveDirectory.isUser(paramObj.getDomain(), paramObj.getUser(), paramObj.getPassword(), paramObj.getServerName());
 
                 if (flag) {
-                    putOk(null);
+                    putOk("Вы успешно авторизованы");
                 } else {
                     putError("Нет такого пользователя");
                 }
@@ -108,7 +112,7 @@ public class Main {
             try {
                 boolean flag = ActiveDirectory.isUserInGroup(paramObj.getDomain(), paramObj.getUser(), paramObj.getPassword(), paramObj.getGroup(), paramObj.getServerName());
                 if (flag) {
-                    putOk(null);
+                    putOk("Вы успешно авторизованы в группе");
                 } else {
                     putError("Нет пользователя в группе");
                 }
@@ -119,25 +123,39 @@ public class Main {
     }
 
     private static void putHelp() {
-        System.out.println("Возможные значения:");
-        System.out.println("Помощь:");
-        System.out.println("Help");
-        System.out.println("или");
+        put("Возможные значения:");
+        put("Помощь:");
+        put("Help");
+        put("или");
 
-        putResult(new ParamObj("help", null, null, null, null, null, null));
+        putObj(new ParamObj("help", null, null, null, null, null, null));
 
 
-        System.out.println("Пользователи Ldap:");
-        putResult(new ParamObj("getUsers", "Пользователь", "пароль", null, "Имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", null));
+        put("Пользователи Ldap:");
+        putObj(new ParamObj(
+                "getUsers",
+                "Пользователь",
+                "пароль",
+                null,
+                "имя домена, если не задано берется с ОС",
+                "Сервер Ldap, если не задан берется domain ",
+                null));
 
-        System.out.println("Смена пароля у пользователя в Ldap:");
-        putResult(new ParamObj("changePassword", "Пользователь", "Пароль", "Новый пароль", "Имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", null));
+        put("Смена пароля у пользователя в Ldap:");
+        putObj(new ParamObj(
+                "changePassword",
+                "Пользователь",
+                "Пароль",
+                "Новый пароль",
+                "имя домена, если не задан берется с ОС",
+                "Сервер Ldap, если не задан берется domain ",
+                null));
 
-        System.out.println("Есть ли пользователь в Ldap:");
-        putResult(new ParamObj("isUser", "Пользователь", "пароль", null, "Имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", null));
+        put("Есть ли пользователь в Ldap:");
+        putObj(new ParamObj("isUser", "Пользователь", "пароль", null, "имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", null));
 
-        System.out.println("Есть ли пользователь в группе Ldap:");
-        putResult(new ParamObj("isUserInGroup", "Пользователь", "пароль", null, "Имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", "Группа в которую включен пользователь"));
+        put("Есть ли пользователь в группе Ldap:");
+        putObj(new ParamObj("isUserInGroup", "Пользователь", "пароль", null, "имя домена, если не задан берется с ОС", "Сервер Ldap, если не задан берется domain ", "Группа в которую включен пользователь"));
 
     }
 
@@ -161,21 +179,26 @@ public class Main {
     }
 
     private static void putOk(String text) {
-        putResult(new Mes(false, text));
+        putObj(new Mes(false, text));
     }
 
     private static void putError(String text) {
-        putResult(new Mes(true, text));
+        putObj(new Mes(true, text));
     }
 
     private static void putError(String text, String javaMes) {
-        putResult(new Mes(true, text, javaMes));
+        putObj(new Mes(true, text, javaMes));
     }
+    private static void put(String mes) {
+        System.out.println(mes);
+        log.info(mes);
 
-    private static void putResult(Object mes) {
+
+    }
+    private static void putObj(Object mes) {
         try {
             String json = objectMapper.writeValueAsString(mes);
-            System.out.println(json);
+            put(json);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

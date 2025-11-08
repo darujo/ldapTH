@@ -1,7 +1,10 @@
 package ru.daru_jo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class ParamObj {
     private String method;
@@ -9,7 +12,9 @@ public class ParamObj {
     private String password;
     private String passwordNew;
 
+    @Setter
     private String domain;
+    @Setter
     private String serverName;
     private String group;
 
@@ -26,35 +31,4 @@ public class ParamObj {
         this.group = group;
     }
 
-    public String getMethod() {
-        return method;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setDomain(String domain) {
-        this.domain = domain;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getDomain() {
-        return domain;
-    }
-
-    public String getServerName() {
-        return serverName;
-    }
-
-    public String getPasswordNew() {
-        return passwordNew;
-    }
-
-    public String getGroup() {
-        return group;
-    }
 }
