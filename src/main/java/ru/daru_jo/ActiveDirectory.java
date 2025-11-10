@@ -1,4 +1,4 @@
-//https://www.javaxt.com/wiki/Tutorials/Windows/How_to_Authenticate_Users_with_Active_Directory
+﻿//https://www.javaxt.com/wiki/Tutorials/Windows/How_to_Authenticate_Users_with_Active_Directory
 package ru.daru_jo;
 
 import lombok.extern.log4j.Log4j;
@@ -437,17 +437,19 @@ public class ActiveDirectory {
         if (arr.length > 1) {
             try {
                 Integer.parseInt(arr[0]);
-                throw new UnknownHostException("Скорее всего ваш компьютер не в домене");
+                throw new UnknownHostException("Скорее всего ваш компьютер не в домене. Ваш адрес " + fqdn);
             }
             catch (NumberFormatException ex) {
                 return fqdn.substring(fqdn.indexOf(".") + 1);
             }
         }
 
-        throw new UnknownHostException("Ваш компьютер не в домене");
+        throw new UnknownHostException("Ваш компьютер не в домене. Ваш адрес " + fqdn);
 
     }
-
+    public static boolean isUserInGroup(String user, String pass, String group) {
+        return isUserInGroup(getDomain(),user,pass,group, null);
+    }
 
     public static boolean isUser(String domain, String user, String pass, String serverName) {
         return isUserInGroup(domain, user, pass, null, serverName);
